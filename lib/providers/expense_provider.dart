@@ -7,22 +7,10 @@ import '../models/expense_transaction.dart';
 import '../services/expense_database.dart';
 
 const predefinedCategories = <String>[
-  'Food',
-  'Movie',
-  'Delivery & Myself',
   'Loan',
-  'Medical',
-  'Home',
-  'Petrol',
-  'Wife',
-  'Appa',
-  'Amma',
-  'For Hand',
-  'Goods',
-  'Rent',
-  'Recharge',
-  'Rent Home',
   'Travel',
+  'Medical',
+  'Food',
 ];
 
 class ExpenseFilter {
@@ -43,8 +31,10 @@ class ExpenseProvider extends ChangeNotifier {
   final ExpenseFilter filter = ExpenseFilter();
   bool isLoading = false;
   final List<ExpenseTransaction> _transactions = [];
+  final List<String> _customCategories = [];
 
   List<ExpenseTransaction> get transactions => _transactions;
+  List<String> get allCategories => {...predefinedCategories, ..._customCategories}.toList()..sort();
 
   List<ExpenseTransaction> get filteredTransactions {
     return _transactions.where((tx) {
@@ -67,9 +57,9 @@ class ExpenseProvider extends ChangeNotifier {
 
   double get totalDebit => filteredTransactions
       .where((e) => !e.isCredit)
-      .fold(0, (sum, e) => sum + e.amount);
+      .fold(0.0, (sum, e) => sum + e.amount);
   double get totalCredit =>
-      filteredTransactions.where((e) => e.isCredit).fold(0, (sum, e) => sum + e.amount);
+      filteredTransactions.where((e) => e.isCredit).fold(0.0, (sum, e) => sum + e.amount);
   double get netBalance => totalCredit - totalDebit;
 
   Map<String, double> get categoryTotals {
@@ -88,23 +78,46 @@ class ExpenseProvider extends ChangeNotifier {
     _transactions
       ..clear()
       ..addAll(await ExpenseDatabase.instance.getAll());
+    
+    _customCategories
+      ..clear()
+      ..addAll(await ExpenseDatabase.instance.getCategories());
+
     isLoading = false;
     notifyListeners();
   }
 
   Future<void> add(ExpenseTransaction tx) async {
     await ExpenseDatabase.instance.insert(tx);
+    // Also add to custom categories if not predefined
+    if (!predefinedCategories.contains(tx.category)) {
+      await addCategory(tx.category);
+    }
     await loadTransactions();
   }
 
   Future<void> update(ExpenseTransaction tx) async {
     await ExpenseDatabase.instance.update(tx);
+    if (!predefinedCategories.contains(tx.category)) {
+      await addCategory(tx.category);
+    }
     await loadTransactions();
   }
 
   Future<void> delete(ExpenseTransaction tx) async {
     if (tx.id == null) return;
     await ExpenseDatabase.instance.delete(tx.id!);
+    await loadTransactions();
+  }
+
+  Future<void> addCategory(String name) async {
+    if (name.trim().isEmpty) return;
+    await ExpenseDatabase.instance.insertCategory(name.trim());
+    await loadTransactions();
+  }
+
+  Future<void> removeCategory(String name) async {
+    await ExpenseDatabase.instance.deleteCategory(name);
     await loadTransactions();
   }
 

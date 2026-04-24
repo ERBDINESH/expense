@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "543751368480",
+    "project_id": "expenze-4946c",
+    "storage_bucket": "expenze-4946c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:543751368480:android:4819f399a24362a285f145",
+        "android_client_info": {
+          "package_name": "com.erb.expenze"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "543751368480-fgr1lgkgmfdt0dvr6m19rrrg4v4givb1.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.erb.expenze",
+            "certificate_hash": "e4b1892b5dbc590ab74a925000eaf557a0974af5"
+          }
+        },
+        {
+          "client_id": "543751368480-vkdut66irt6rq1hm03im49ad7fo4cv4c.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDTalYojotgjDVkuuKf8clOWl_hPSpsrHo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "543751368480-vkdut66irt6rq1hm03im49ad7fo4cv4c.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,6 +1,7 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.erb.expenze">
     <application
-        android:label="expense"
+        android:label="Moniqo"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

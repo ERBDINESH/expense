@@ -14,7 +14,7 @@ class ExpenseDatabase {
     final dbPath = await getDatabasesPath();
     _database = await openDatabase(
       join(dbPath, 'expense.db'),
-      version: 1,
+      version: 2, // Incremented version
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE transactions(
@@ -26,6 +26,22 @@ class ExpenseDatabase {
             notes TEXT
           )
         ''');
+        await db.execute('''
+          CREATE TABLE categories(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL UNIQUE
+          )
+        ''');
+      },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await db.execute('''
+            CREATE TABLE categories(
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              name TEXT NOT NULL UNIQUE
+            )
+          ''');
+        }
       },
     );
   }
@@ -37,6 +53,7 @@ class ExpenseDatabase {
     return _database!;
   }
 
+  // Transactions
   Future<List<ExpenseTransaction>> getAll() async {
     final database = await db;
     final maps = await database.query('transactions', orderBy: 'date DESC');
@@ -61,5 +78,22 @@ class ExpenseDatabase {
   Future<void> delete(int id) async {
     final database = await db;
     await database.delete('transactions', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // Categories
+  Future<List<String>> getCategories() async {
+    final database = await db;
+    final maps = await database.query('categories', orderBy: 'name ASC');
+    return maps.map((m) => m['name'] as String).toList();
+  }
+
+  Future<int> insertCategory(String name) async {
+    final database = await db;
+    return database.insert('categories', {'name': name}, conflictAlgorithm: ConflictAlgorithm.ignore);
+  }
+
+  Future<void> deleteCategory(String name) async {
+    final database = await db;
+    await database.delete('categories', where: 'name = ?', whereArgs: [name]);
   }
 }

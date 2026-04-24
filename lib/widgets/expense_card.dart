@@ -8,60 +8,125 @@ class ExpenseCard extends StatelessWidget {
     super.key,
     required this.transaction,
     required this.onTap,
+    this.showBackground = false,
   });
 
   final ExpenseTransaction transaction;
   final VoidCallback onTap;
+  final bool showBackground;
 
   static const icons = {
-    'Food': Icons.restaurant,
-    'Movie': Icons.movie,
-    'Delivery & Myself': Icons.delivery_dining,
-    'Loan': Icons.account_balance,
-    'Medical': Icons.local_hospital,
-    'Home': Icons.home,
-    'Petrol': Icons.local_gas_station,
-    'Wife': Icons.favorite,
-    'Appa': Icons.person,
-    'Amma': Icons.person_2,
-    'For Hand': Icons.back_hand,
-    'Goods': Icons.shopping_bag,
-    'Rent': Icons.house_siding,
-    'Recharge': Icons.phone_iphone,
-    'Rent Home': Icons.home_work,
-    'Travel': Icons.flight,
+    'Food': Icons.restaurant_rounded,
+    'Movie': Icons.movie_rounded,
+    'Delivery & Myself': Icons.delivery_dining_rounded,
+    'Loan': Icons.account_balance_rounded,
+    'Medical': Icons.local_hospital_rounded,
+    'Home': Icons.home_rounded,
+    'Petrol': Icons.local_gas_station_rounded,
+    'Wife': Icons.favorite_rounded,
+    'Appa': Icons.person_rounded,
+    'Amma': Icons.person_2_rounded,
+    'Hand': Icons.back_hand_rounded,
+    'Goods': Icons.shopping_bag_rounded,
+    'Rent': Icons.house_siding_rounded,
+    'Recharge': Icons.phone_iphone_rounded,
+    'Rent Home': Icons.home_work_rounded,
+    'Travel': Icons.flight_rounded,
   };
 
   @override
   Widget build(BuildContext context) {
-    final amountColor = transaction.isCredit ? Colors.green : Colors.red;
-    final format = NumberFormat.currency(locale: 'en_IN', symbol: '₹');
-    return Card(
-      child: ListTile(
-        onTap: onTap,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-        leading: CircleAvatar(
-          backgroundColor: amountColor.withValues(alpha: 0.12),
-          child: Icon(icons[transaction.category] ?? Icons.category, color: amountColor),
-        ),
-        title: Text(transaction.category),
-        subtitle: Text(
-          transaction.notes?.isNotEmpty == true ? transaction.notes! : 'No notes',
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        trailing: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.end,
+    final accentColor = transaction.isCredit ? const Color(0xFF2E7D32) : Colors.red[700]!;
+    final format = NumberFormat.simpleCurrency(locale: 'en_IN', decimalDigits: 0);
+    
+    Widget content = InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
           children: [
-            Text(
-              format.format(transaction.amount),
-              style: TextStyle(color: amountColor, fontWeight: FontWeight.w700),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: accentColor.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Icon(
+                icons[transaction.category] ?? Icons.category_rounded,
+                color: accentColor,
+                size: 24,
+              ),
             ),
-            Text(DateFormat('hh:mm a').format(transaction.date)),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    transaction.category,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                  ),
+                  if (transaction.notes != null && transaction.notes!.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      transaction.notes!,
+                      style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color, fontSize: 12),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  '${transaction.isCredit ? '+' : '-'} ₹${format.format(transaction.amount).replaceAll(RegExp(r'[^0-9,]'), '')}',
+                  style: TextStyle(
+                    color: accentColor,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  transaction.type,
+                  style: TextStyle(
+                    color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.5),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
       ),
     );
+
+    if (showBackground) {
+      return Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.02),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: content,
+      );
+    }
+    return content;
   }
 }
