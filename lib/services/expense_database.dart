@@ -14,7 +14,7 @@ class ExpenseDatabase {
     final dbPath = await getDatabasesPath();
     _database = await openDatabase(
       join(dbPath, 'expense.db'),
-      version: 2, // Incremented version
+      version: 3, // Incremented version
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE transactions(
@@ -22,6 +22,7 @@ class ExpenseDatabase {
             amount REAL NOT NULL,
             type TEXT NOT NULL,
             category TEXT NOT NULL,
+            categoryName TEXT NOT NULL,
             date TEXT NOT NULL,
             notes TEXT
           )
@@ -34,13 +35,9 @@ class ExpenseDatabase {
         ''');
       },
       onUpgrade: (db, oldVersion, newVersion) async {
-        if (oldVersion < 2) {
-          await db.execute('''
-            CREATE TABLE categories(
-              id INTEGER PRIMARY KEY AUTOINCREMENT,
-              name TEXT NOT NULL UNIQUE
-            )
-          ''');
+        if (oldVersion < 3) {
+          // Migration to add categoryName
+          await db.execute('ALTER TABLE transactions ADD COLUMN categoryName TEXT DEFAULT ""');
         }
       },
     );

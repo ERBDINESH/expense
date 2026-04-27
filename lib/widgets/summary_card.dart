@@ -100,8 +100,6 @@ class _SummaryCardState extends State<SummaryCard> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text('This month', style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color, fontSize: 10)),
-                        const SizedBox(width: 8),
                         Icon(Icons.north_east_rounded, color: Theme.of(context).colorScheme.primary, size: 10),
                         const SizedBox(width: 4),
                         Text('100%', style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 10, fontWeight: FontWeight.bold)),
@@ -202,7 +200,7 @@ class _MetricBox extends StatelessWidget {
                 ),
                 if (showMonth) ...[
                   const SizedBox(height: 4),
-                  Text('This month', style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.5), fontSize: 9)),
+                  // Removed "This month" text
                 ],
               ],
             ),

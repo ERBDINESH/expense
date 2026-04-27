@@ -9,6 +9,7 @@ class UserModel {
   final String? password;
   final DateTime? createdAt;
   final String currency;
+  final double dailyLimit;
 
   UserModel({
     required this.email,
@@ -19,6 +20,7 @@ class UserModel {
     this.password,
     this.createdAt,
     this.currency = 'INR',
+    this.dailyLimit = 500.0,
   });
 
   factory UserModel.fromMap(Map<String, dynamic> map) {
@@ -33,6 +35,7 @@ class UserModel {
           ? (map['createdAt'] as Timestamp).toDate() 
           : null,
       currency: map['currency'] ?? 'INR',
+      dailyLimit: (map['dailyLimit'] ?? 500.0).toDouble(),
     );
   }
 
@@ -46,6 +49,7 @@ class UserModel {
       'password': password,
       'createdAt': createdAt != null ? Timestamp.fromDate(createdAt!) : FieldValue.serverTimestamp(),
       'currency': currency,
+      'dailyLimit': dailyLimit,
     };
   }
 }

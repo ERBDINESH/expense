@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:collection/collection.dart';
 
 import '../models/expense_transaction.dart';
+import '../models/app_category.dart';
 import '../providers/expense_provider.dart';
 
 class AddEditExpenseScreen extends StatefulWidget {
@@ -18,7 +20,8 @@ class _AddEditExpenseScreenState extends State<AddEditExpenseScreen> {
   late final TextEditingController amountCtrl;
   late final TextEditingController notesCtrl;
   String type = 'Debit';
-  String? category;
+  String? categoryId;
+  String? categoryName;
   DateTime date = DateTime.now();
 
   @override
@@ -28,12 +31,55 @@ class _AddEditExpenseScreenState extends State<AddEditExpenseScreen> {
     amountCtrl = TextEditingController(text: initial?.amount.toString() ?? '');
     notesCtrl = TextEditingController(text: initial?.notes ?? '');
     type = initial?.type ?? type;
-    category = initial?.category;
+    categoryId = initial?.category;
+    categoryName = initial?.categoryName;
     date = initial?.date ?? date;
+
+    notesCtrl.addListener(_onNotesChanged);
+  }
+
+  void _onNotesChanged() {
+    if (categoryId != null) return; // Don't overwrite manually selected
+    final text = notesCtrl.text.toLowerCase();
+    final provider = context.read<ExpenseProvider>();
+    final cats = provider.allCategories;
+
+    final mapping = {
+      'eb': 'electricity',
+      'current': 'electricity',
+      'rent': 'rent',
+      'food': 'food',
+      'lunch': 'food',
+      'dinner': 'food',
+      'fuel': 'petrol',
+      'petrol': 'petrol',
+      'gas': 'petrol',
+      'taxi': 'travel',
+      'uber': 'travel',
+      'ola': 'travel',
+      'movie': 'movie',
+      'recharge': 'recharge',
+      'jio': 'recharge',
+      'airtel': 'recharge',
+    };
+
+    for (var key in mapping.keys) {
+      if (text.contains(key)) {
+        final match = cats.firstWhereOrNull((c) => c.name.toLowerCase().contains(mapping[key]!));
+        if (match != null) {
+          setState(() {
+            categoryId = match.id;
+            categoryName = match.name;
+          });
+          break;
+        }
+      }
+    }
   }
 
   @override
   void dispose() {
+    notesCtrl.removeListener(_onNotesChanged);
     amountCtrl.dispose();
     notesCtrl.dispose();
     super.dispose();
@@ -43,21 +89,19 @@ class _AddEditExpenseScreenState extends State<AddEditExpenseScreen> {
   Widget build(BuildContext context) {
     final provider = context.watch<ExpenseProvider>();
     final isEdit = widget.initial != null;
-    final existingCategories = provider.allCategories;
+    final allCategories = provider.allCategories;
+
+    // Safety check for dropdown value
+    bool categoryExists = allCategories.any((cat) => cat.id == categoryId);
+    String? safeCategoryId = categoryExists ? categoryId : null;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FB),
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.black87),
+          icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(
-          isEdit ? 'Edit Transaction' : 'Add Transaction',
-          style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
-        ),
+        title: Text(isEdit ? 'Edit Transaction' : 'Add Transaction'),
       ),
       body: Form(
         key: _formKey,
@@ -68,26 +112,22 @@ class _AddEditExpenseScreenState extends State<AddEditExpenseScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(24),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.02),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
+                border: Border.all(color: Colors.white10),
               ),
               child: TextFormField(
                 controller: amountCtrl,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                style: const TextStyle(color: Colors.black87, fontSize: 32, fontWeight: FontWeight.bold),
-                decoration: const InputDecoration(
+                style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+                decoration: InputDecoration(
                   prefixText: '₹ ',
-                  prefixStyle: TextStyle(color: Color(0xFF2E7D32), fontSize: 32),
+                  prefixStyle: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 32),
                   labelText: 'Amount',
-                  labelStyle: TextStyle(color: Colors.black26, fontSize: 14),
                   border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  fillColor: Colors.transparent,
                 ),
                 validator: (value) {
                   final amount = double.tryParse(value ?? '');
@@ -114,7 +154,7 @@ class _AddEditExpenseScreenState extends State<AddEditExpenseScreen> {
                   child: _TypeButton(
                     label: 'Income',
                     isSelected: type == 'Credit',
-                    color: const Color(0xFF2E7D32),
+                    color: Theme.of(context).colorScheme.primary,
                     onTap: () => setState(() => type = 'Credit'),
                   ),
                 ),
@@ -126,32 +166,61 @@ class _AddEditExpenseScreenState extends State<AddEditExpenseScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(24),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.02),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
+                border: Border.all(color: Colors.white10),
               ),
               child: DropdownButtonFormField<String>(
-                dropdownColor: Colors.white,
-                value: category,
-                items: existingCategories.map((cat) {
-                  return DropdownMenuItem(value: cat, child: Text(cat, style: const TextStyle(color: Colors.black87)));
-                }).toList(),
-                onChanged: (value) => setState(() => category = value),
+                dropdownColor: Theme.of(context).cardColor,
+                value: safeCategoryId,
+                items: [
+                  const DropdownMenuItem(
+                    enabled: false,
+                    child: Text("--- Default Categories ---", style: TextStyle(color: Colors.white30, fontSize: 12)),
+                  ),
+                  ...allCategories.where((c) => c.type == CategoryType.defaultType).map((cat) => 
+                    DropdownMenuItem(value: cat.id, child: Text(cat.name))),
+                  const DropdownMenuItem(
+                    enabled: false,
+                    child: Text("--- Your Categories ---", style: TextStyle(color: Colors.white30, fontSize: 12)),
+                  ),
+                  ...allCategories.where((c) => c.type == CategoryType.custom).map((cat) => 
+                    DropdownMenuItem(value: cat.id, child: Text(cat.name))),
+                ],
+                onChanged: (value) {
+                  final selected = allCategories.firstWhere((cat) => cat.id == value);
+                  setState(() {
+                    categoryId = value;
+                    categoryName = selected.name;
+                  });
+                },
                 decoration: const InputDecoration(
                   labelText: 'Category',
-                  labelStyle: TextStyle(color: Colors.black26),
                   border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  fillColor: Colors.transparent,
                 ),
                 validator: (value) => value == null ? 'Please select a category' : null,
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 32),
+
+            // Quick Tags
+            const Text('QUICK TAGS', style: TextStyle(color: Colors.white24, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _buildTag('🍔 Food', allCategories),
+                _buildTag('🚗 Travel', allCategories),
+                _buildTag('🛒 Grocery', allCategories),
+                _buildTag('❤️ Family', allCategories),
+                _buildTag('💡 Bills', allCategories),
+              ],
+            ),
+            const SizedBox(height: 32),
             
             // Date Picker
             InkWell(
@@ -161,19 +230,6 @@ class _AddEditExpenseScreenState extends State<AddEditExpenseScreen> {
                   firstDate: DateTime(2020),
                   lastDate: DateTime(2100),
                   initialDate: date,
-                  builder: (context, child) {
-                    return Theme(
-                      data: Theme.of(context).copyWith(
-                        colorScheme: const ColorScheme.light(
-                          primary: Color(0xFF2E7D32),
-                          onPrimary: Colors.white,
-                          surface: Colors.white,
-                          onSurface: Colors.black87,
-                        ),
-                      ),
-                      child: child!,
-                    );
-                  },
                 );
                 if (selected != null) {
                   setState(() => date = DateTime(
@@ -188,28 +244,22 @@ class _AddEditExpenseScreenState extends State<AddEditExpenseScreen> {
               child: Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: Theme.of(context).cardColor,
                   borderRadius: BorderRadius.circular(24),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.02),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
+                  border: Border.all(color: Colors.white10),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.calendar_today_rounded, color: Color(0xFF2E7D32), size: 20),
+                    Icon(Icons.calendar_today_rounded, color: Theme.of(context).colorScheme.primary, size: 20),
                     const SizedBox(width: 16),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Date', style: TextStyle(color: Colors.black26, fontSize: 12)),
+                        Text('Date', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12)),
                         const SizedBox(height: 4),
                         Text(
                           '${date.day}/${date.month}/${date.year}',
-                          style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
+                          style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                       ],
                     ),
@@ -223,38 +273,36 @@ class _AddEditExpenseScreenState extends State<AddEditExpenseScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(24),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.02),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
+                border: Border.all(color: Colors.white10),
               ),
               child: TextFormField(
                 controller: notesCtrl,
                 maxLines: 3,
-                style: const TextStyle(color: Colors.black87),
                 decoration: const InputDecoration(
                   labelText: 'Notes (optional)',
-                  labelStyle: TextStyle(color: Colors.black26),
                   border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  fillColor: Colors.transparent,
                 ),
               ),
             ),
             const SizedBox(height: 40),
             
             // Submit Button
-            GestureDetector(
-              onTap: () async {
-                if (!_formKey.currentState!.validate() || category == null) return;
+            ElevatedButton(
+              onPressed: provider.isProcessing 
+                  ? null 
+                  : () async {
+                if (!_formKey.currentState!.validate() || categoryId == null || categoryName == null) return;
                 final tx = ExpenseTransaction(
                   id: widget.initial?.id,
                   amount: double.parse(amountCtrl.text),
                   type: type,
-                  category: category!,
+                  category: categoryId!,
+                  categoryName: categoryName!,
                   date: date,
                   notes: notesCtrl.text.trim().isEmpty ? null : notesCtrl.text.trim(),
                 );
@@ -266,31 +314,45 @@ class _AddEditExpenseScreenState extends State<AddEditExpenseScreen> {
                 }
                 if (mounted) Navigator.pop(context, true);
               },
-              child: Container(
-                height: 64,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF66BB6A), Color(0xFF2E7D32)],
-                  ),
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF2E7D32).withOpacity(0.2),
-                      blurRadius: 15,
-                      offset: const Offset(0, 5),
+              child: provider.isProcessing
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
                     )
-                  ],
-                ),
-                child: Center(
-                  child: Text(
-                    isEdit ? 'Update Transaction' : 'Create Transaction',
-                    style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ),
+                  : Text(isEdit ? 'Update Transaction' : 'Create Transaction'),
             ),
             const SizedBox(height: 40),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTag(String label, List<AppCategory> categories) {
+    final tagName = label.split(' ').last.toLowerCase();
+    
+    return GestureDetector(
+      onTap: () {
+        final match = categories.firstWhere(
+          (c) => c.name.toLowerCase().contains(tagName),
+          orElse: () => categories.firstWhere((c) => c.name.toLowerCase() == 'misc', orElse: () => categories.first),
+        );
+        setState(() {
+          categoryId = match.id;
+          categoryName = match.name;
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white10),
+        ),
+        child: Text(
+          label,
+          style: const TextStyle(fontSize: 12, color: Colors.white70),
         ),
       ),
     );
@@ -317,25 +379,17 @@ class _TypeButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 18),
         decoration: BoxDecoration(
-          color: isSelected ? color.withOpacity(0.08) : Colors.white,
+          color: isSelected ? color.withOpacity(0.08) : Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? color.withOpacity(0.3) : Colors.black.withOpacity(0.05),
+            color: isSelected ? color.withOpacity(0.3) : Colors.white10,
           ),
-          boxShadow: [
-            if (!isSelected)
-              BoxShadow(
-                color: Colors.black.withOpacity(0.01),
-                blurRadius: 5,
-                offset: const Offset(0, 2),
-              ),
-          ],
         ),
         child: Center(
           child: Text(
             label,
             style: TextStyle(
-              color: isSelected ? color : Colors.black26,
+              color: isSelected ? color : Theme.of(context).colorScheme.onSurfaceVariant,
               fontWeight: FontWeight.bold,
             ),
           ),

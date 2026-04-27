@@ -53,7 +53,7 @@ class ExpenseCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Icon(
-                icons[transaction.category] ?? Icons.category_rounded,
+                icons[transaction.categoryName] ?? Icons.category_rounded,
                 color: accentColor,
                 size: 24,
               ),
@@ -64,7 +64,7 @@ class ExpenseCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    transaction.category,
+                    transaction.categoryName,
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,

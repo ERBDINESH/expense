@@ -1,329 +1,282 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-
+import 'package:intl/intl.dart';
 import '../providers/expense_provider.dart';
-import '../widgets/expense_card.dart';
-import '../widgets/filter_bar.dart';
-import '../widgets/summary_card.dart';
 import '../services/auth_service.dart';
-import 'add_edit_expense_screen.dart';
 import 'profile_screen.dart';
-import 'transaction_detail_screen.dart';
 
-class DashboardScreen extends StatelessWidget {
+class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
 
   @override
+  State<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends State<DashboardScreen> {
+  @override
   Widget build(BuildContext context) {
     final provider = context.watch<ExpenseProvider>();
-    final grouped = provider.groupedByDate;
     final user = AuthService().currentUser;
+    final theme = Theme.of(context);
+    final format = NumberFormat.simpleCurrency(locale: 'en_IN', decimalDigits: 0);
+
+    final todaySpent = provider.todaySpent;
+    final dailyBudget = provider.dynamicDailyBudget;
+    final remaining = provider.remainingToday;
+    final progress = (dailyBudget > 0 ? (todaySpent / dailyBudget) : 0.0).clamp(0.0, 1.0);
+    
+    String mood = '😊';
+    Color statusColor = theme.colorScheme.primary;
+    if (remaining <= 0) {
+      mood = '😞';
+      statusColor = Colors.redAccent;
+    } else if (progress > 0.5) {
+      mood = '😐';
+      statusColor = Colors.orangeAccent;
+    }
 
     return Scaffold(
       body: SafeArea(
         child: RefreshIndicator(
-          color: Theme.of(context).colorScheme.primary,
-          onRefresh: provider.loadTransactions,
-          child: Column(
+          onRefresh: provider.refreshAll,
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
             children: [
-              // Header
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Hey, ${user?.displayName?.split(' ').first ?? 'Arjun'} 👋',
-                          style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color ?? Colors.grey, fontSize: 16, fontWeight: FontWeight.w500),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          'Moniqo',
-                          style: TextStyle(
-                            fontSize: 34,
-                            fontWeight: FontWeight.bold,
-                            color: Theme.of(context).colorScheme.onBackground,
-                            letterSpacing: -1,
-                          ),
-                        ),
-                      ],
-                    ),
-                    GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const ProfileScreen()),
-                        );
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Theme.of(context).cardColor,
-                          boxShadow: [
-                            BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)
-                          ],
-                        ),
-                        child: CircleAvatar(
-                          radius: 26,
-                          backgroundColor: Theme.of(context).colorScheme.surfaceVariant,
-                          backgroundImage: user?.photoURL != null ? NetworkImage(user!.photoURL!) : null,
-                          child: user?.photoURL == null 
-                              ? Icon(Icons.person, color: Theme.of(context).colorScheme.primary, size: 30)
-                              : null,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              
-              Expanded(
-                child: ListView(
-                  physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  children: [
-                    const SummaryCard(),
-                    const SizedBox(height: 28),
-                    const FilterBar(),
-                    const SizedBox(height: 32),
-                    
-                    if (provider.categoryTotals.isNotEmpty) ...[
-                      _buildSectionHeader('Category Breakdown', context),
-                      const SizedBox(height: 16),
-                      _CategoryBreakdown(
-                        categoryTotals: provider.categoryTotals,
-                        totalExpense: provider.totalDebit,
-                      ),
-                      const SizedBox(height: 32),
-                    ],
-                    
-                    _buildSectionHeader('Recent Transactions', context),
-                    const SizedBox(height: 16),
-                    
-                    if (provider.isLoading)
-                      const Center(child: Padding(
-                        padding: EdgeInsets.all(40.0),
-                        child: CircularProgressIndicator(color: Color(0xFF2E7D32)),
-                      ))
-                    else if (grouped.isEmpty)
-                      const _EmptyState()
-                    else
-                      ..._buildTransactionList(context, grouped),
-                        
-                      const SizedBox(height: 120),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-      floatingActionButton: GestureDetector(
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const AddEditExpenseScreen()),
-        ),
-        child: Container(
-          width: 64,
-          height: 64,
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color(0xFF66BB6A), Color(0xFF2E7D32)],
-            ),
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF2E7D32).withOpacity(0.3),
-                blurRadius: 15,
-                offset: const Offset(0, 6),
-              )
-            ],
-          ),
-          child: const Icon(Icons.add_rounded, color: Colors.white, size: 36),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSectionHeader(String title, BuildContext context) {
-    return Text(
-      title,
-      style: TextStyle(
-        color: Theme.of(context).colorScheme.onBackground,
-        fontSize: 19,
-        fontWeight: FontWeight.bold,
-        letterSpacing: -0.5,
-      ),
-    );
-  }
-
-  List<Widget> _buildTransactionList(BuildContext context, Map<DateTime, List<dynamic>> grouped) {
-    List<Widget> list = [];
-    for (final entry in grouped.entries) {
-      final dailyTotal = entry.value
-          .where((tx) => !tx.isCredit)
-          .fold(0.0, (sum, tx) => sum + tx.amount);
-          
-      list.add(
-        Padding(
-          padding: const EdgeInsets.only(bottom: 12, top: 16, left: 4, right: 4),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                DateFormat('EEEE, dd MMM').format(entry.key),
-                style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color ?? Colors.grey, fontWeight: FontWeight.bold, fontSize: 13),
-              ),
-              if (dailyTotal > 0)
-                Text(
-                  '₹${dailyTotal.toStringAsFixed(0)}',
-                  style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 13),
-                ),
-            ],
-          ),
-        ),
-      );
-      
-      list.add(
-        Container(
-          decoration: BoxDecoration(
-            color: Theme.of(context).cardColor,
-            borderRadius: BorderRadius.circular(28),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.02),
-                blurRadius: 15,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: Column(
-            children: [
-              for (var i = 0; i < entry.value.length; i++) ...[
-                ExpenseCard(
-                  transaction: entry.value[i],
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => TransactionDetailScreen(transaction: entry.value[i]),
-                    ),
-                  ),
-                ),
-                if (i < entry.value.length - 1)
-                  const Divider(height: 1, color: Color(0xFFF1F4F8), indent: 20, endIndent: 20),
-              ],
-            ],
-          ),
-        ),
-      );
-    }
-    return list;
-  }
-}
-
-class _CategoryBreakdown extends StatelessWidget {
-  const _CategoryBreakdown({required this.categoryTotals, required this.totalExpense});
-  final Map<String, double> categoryTotals;
-  final double totalExpense;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(32),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          ...categoryTotals.entries.take(3).map((entry) {
-            final percentage = totalExpense > 0 ? (entry.value / totalExpense) : 0.0;
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 20),
-              child: Column(
+              // 1. Header
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          Container(
-                            width: 8,
-                            height: 8,
-                            decoration: BoxDecoration(color: Theme.of(context).colorScheme.primary, shape: BoxShape.circle),
-                          ),
-                          const SizedBox(width: 12),
-                          Text(
-                            entry.key,
-                            style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color, fontSize: 14, fontWeight: FontWeight.w600),
-                          ),
-                        ],
-                      ),
                       Text(
-                        '₹${entry.value.toStringAsFixed(0)}',
-                        style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold, fontSize: 14),
+                        'Hey, ${user?.displayName?.split(' ').first ?? 'Thozha'} 👋',
+                        style: const TextStyle(color: Colors.white38, fontSize: 16),
+                      ),
+                      const SizedBox(height: 4),
+                      const Text(
+                        'Moniqo',
+                        style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, letterSpacing: -0.5),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 10),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: LinearProgressIndicator(
-                      value: percentage,
-                      backgroundColor: Theme.of(context).colorScheme.surfaceVariant,
-                      color: Theme.of(context).colorScheme.primary,
-                      minHeight: 8,
+                  GestureDetector(
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfileScreen())),
+                    child: CircleAvatar(
+                      radius: 24,
+                      backgroundColor: theme.cardColor,
+                      backgroundImage: user?.photoURL != null ? NetworkImage(user!.photoURL!) : null,
+                      child: user?.photoURL == null ? const Icon(Icons.person) : null,
                     ),
                   ),
                 ],
               ),
-            );
-          }),
+              const SizedBox(height: 40),
+
+              // 2. Balance Card
+              _buildBalanceCard(context, format, provider),
+              const SizedBox(height: 24),
+
+              // 3. Available Cash Context
+              if (provider.upcomingFixedCosts > 0)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12, left: 4),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.lock_clock_outlined, size: 14, color: Colors.white24),
+                      const SizedBox(width: 8),
+                      Text(
+                        '₹${provider.upcomingFixedCosts.toStringAsFixed(0)} reserved for upcoming payments',
+                        style: const TextStyle(color: Colors.white24, fontSize: 12, fontStyle: FontStyle.italic),
+                      ),
+                    ],
+                  ),
+                ),
+
+              _buildBudgetCard(context, format, provider, mood, statusColor, progress),
+              const SizedBox(height: 24),
+
+              if (provider.weeklyInsight != null)
+                _buildInsightCard(context, provider.weeklyInsight!),
+              
+              if (provider.upcomingFixedCosts == 0)
+                 const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 24),
+                  child: Center(
+                    child: Text(
+                      'Add fixed costs to see reserved balance breakdown',
+                      style: TextStyle(color: Colors.white10, fontSize: 11),
+                    ),
+                  ),
+                ),
+
+              const SizedBox(height: 32),
+
+              // 4. Fast Expense Entry
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'QUICK ADD ${provider.mostFrequentCategory != null ? "(${provider.mostFrequentCategory!.name.toUpperCase()})" : ""}',
+                    style: const TextStyle(color: Colors.white24, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.2),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _buildQuickAddButton(context, 10, provider),
+                  _buildQuickAddButton(context, 20, provider),
+                  _buildQuickAddButton(context, 50, provider),
+                  _buildQuickAddButton(context, 100, provider),
+                ],
+              ),
+
+              const SizedBox(height: 40),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBalanceCard(BuildContext context, NumberFormat format, ExpenseProvider provider) {
+    final amount = provider.availableBalance;
+    final isNegative = amount < 0;
+    
+    String label = 'AVAILABLE TO SPEND';
+    String displayAmount = format.format(amount.abs());
+    Color textColor = Colors.white;
+
+    if (isNegative) {
+      label = 'OVERUSED BY';
+      textColor = Colors.redAccent;
+      displayAmount = '$displayAmount 😞';
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(28),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(32),
+        border: Border.all(color: isNegative ? Colors.redAccent.withValues(alpha: 0.3) : Colors.white10),
+      ),
+      child: Column(
+        children: [
+          Text(label, style: TextStyle(color: isNegative ? Colors.redAccent : Colors.white24, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+          const SizedBox(height: 12),
+          Text(
+            displayAmount,
+            style: TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: textColor),
+          ),
+          if (isNegative)
+            const Padding(
+              padding: EdgeInsets.only(top: 8.0),
+              child: Text(
+                'You\'ve exceeded your available spending',
+                style: TextStyle(color: Colors.redAccent, fontSize: 12, fontWeight: FontWeight.w500),
+              ),
+            ),
         ],
       ),
     );
   }
-}
 
-class _EmptyState extends StatelessWidget {
-  const _EmptyState();
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 60),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Theme.of(context).cardColor,
-                shape: BoxShape.circle,
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 20)],
+  Widget _buildBudgetCard(BuildContext context, NumberFormat format, ExpenseProvider provider, String mood, Color statusColor, double progress) {
+    return Container(
+      padding: const EdgeInsets.all(28),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(32),
+        border: Border.all(color: Colors.white10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('DAILY BUDGET', style: TextStyle(color: Colors.white38, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1)),
+              Text(mood, style: const TextStyle(fontSize: 20)),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                '${format.format(provider.todaySpent)} spent',
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
-              child: Icon(Icons.account_balance_wallet_outlined, size: 48, color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.2)),
+              Text(
+                provider.remainingToday >= 0 
+                  ? '${format.format(provider.remainingToday)} left'
+                  : 'Over by ${format.format(provider.todaySpent - provider.dynamicDailyBudget)}',
+                style: TextStyle(color: statusColor, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            provider.remainingToday > 0 
+              ? 'Safe to spend: ₹${provider.safeToSpendPerHour.toStringAsFixed(0)} per hour'
+              : 'You\'ve exceeded today\'s budget',
+            style: const TextStyle(color: Colors.white24, fontSize: 12),
+          ),
+          const SizedBox(height: 24),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: LinearProgressIndicator(
+              value: progress,
+              minHeight: 8,
+              backgroundColor: Colors.white.withValues(alpha: 0.05),
+              valueColor: AlwaysStoppedAnimation<Color>(statusColor),
             ),
-            const SizedBox(height: 24),
-            Text('No Transactions Yet', style: TextStyle(color: Theme.of(context).colorScheme.onBackground, fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            Text('Start tracking your expenses today!', style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color, fontSize: 14)),
-          ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInsightCard(BuildContext context, String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.auto_awesome_rounded, size: 18, color: Theme.of(context).colorScheme.primary),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.8), fontSize: 12, fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuickAddButton(BuildContext context, double amount, ExpenseProvider provider) {
+    return GestureDetector(
+      onTap: () => provider.addQuickExpense(amount),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white10),
+        ),
+        child: Text(
+          '₹$amount',
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white70),
         ),
       ),
     );

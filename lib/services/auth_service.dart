@@ -100,6 +100,16 @@ class AuthService {
     await _auth.signOut();
   }
 
+  // Reset password
+  Future<void> sendPasswordResetEmail(String email) async {
+    try {
+      await _auth.sendPasswordResetEmail(email: email);
+    } catch (e) {
+      print('Error sending password reset email: $e');
+      rethrow;
+    }
+  }
+
   User? get currentUser => _auth.currentUser;
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 }
