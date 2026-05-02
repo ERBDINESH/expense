@@ -89,9 +89,19 @@ class ExpenseProvider extends ChangeNotifier {
 
   double get totalBalance => netBalance; // Standardized name for clarity
 
-  Map<String, double> get categoryTotals {
+  Map<String, double> getExpenseCategoryTotals(List<ExpenseTransaction> txs) {
     final result = <String, double>{};
-    for (final tx in filteredTransactions.where((e) => !e.isCredit)) {
+    for (final tx in txs.where((e) => !e.isCredit)) {
+      result[tx.categoryName] = (result[tx.categoryName] ?? 0) + tx.amount;
+    }
+    return Map.fromEntries(
+      result.entries.toList()..sort((a, b) => b.value.compareTo(a.value)),
+    );
+  }
+
+  Map<String, double> getIncomeCategoryTotals(List<ExpenseTransaction> txs) {
+    final result = <String, double>{};
+    for (final tx in txs.where((e) => e.isCredit)) {
       result[tx.categoryName] = (result[tx.categoryName] ?? 0) + tx.amount;
     }
     return Map.fromEntries(
@@ -110,14 +120,7 @@ class ExpenseProvider extends ChangeNotifier {
 
   double get availableBalance => netBalance - upcomingFixedCosts;
 
-  double get dynamicDailyBudget {
-    final now = DateTime.now();
-    final lastDay = DateTime(now.year, now.month + 1, 0).day;
-    final remainingDays = lastDay - now.day + 1;
-    if (remainingDays <= 0) return availableBalance;
-    final budget = availableBalance / remainingDays;
-    return budget > 0 ? budget : 0.0;
-  }
+  double get dailyBudget => dailyLimit;
 
   double get todaySpent {
     final now = DateTime.now();
@@ -129,7 +132,7 @@ class ExpenseProvider extends ChangeNotifier {
     ).fold(0.0, (sum, tx) => sum + tx.amount);
   }
 
-  double get remainingToday => dynamicDailyBudget - todaySpent;
+  double get remainingToday => dailyBudget - todaySpent;
 
   double get safeToSpendPerHour {
     final hoursLeft = max(1, 24 - DateTime.now().hour);

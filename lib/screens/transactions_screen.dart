@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../providers/expense_provider.dart';
+import '../models/expense_transaction.dart';
 import '../widgets/expense_card.dart';
 import '../widgets/filter_bar.dart';
 import 'transaction_detail_screen.dart';
@@ -45,20 +46,38 @@ class TransactionsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildDateGroup(BuildContext context, DateTime date, List<dynamic> transactions) {
+  Widget _buildDateGroup(BuildContext context, DateTime date, List<ExpenseTransaction> transactions) {
+    final dailyTotal = transactions
+        .where((tx) => !tx.isCredit)
+        .fold(0.0, (sum, tx) => sum + tx.amount);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 12, top: 16),
-          child: Text(
-            DateFormat('EEEE, dd MMM').format(date),
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 0.5,
-            ),
+          padding: const EdgeInsets.only(left: 4, right: 8, bottom: 12, top: 16),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                DateFormat('EEEE, dd MMM').format(date),
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              if (dailyTotal > 0)
+                Text(
+                  '₹${dailyTotal.toStringAsFixed(0)}',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+            ],
           ),
         ),
         Container(

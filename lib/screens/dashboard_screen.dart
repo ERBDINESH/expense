@@ -21,7 +21,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final format = NumberFormat.simpleCurrency(locale: 'en_IN', decimalDigits: 0);
 
     final todaySpent = provider.todaySpent;
-    final dailyBudget = provider.dynamicDailyBudget;
+    final dailyBudget = provider.dailyBudget;
     final remaining = provider.remainingToday;
     final progress = (dailyBudget > 0 ? (todaySpent / dailyBudget) : 0.0).clamp(0.0, 1.0);
     
@@ -214,7 +214,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               Text(
                 provider.remainingToday >= 0 
                   ? '${format.format(provider.remainingToday)} left'
-                  : 'Over by ${format.format(provider.todaySpent - provider.dynamicDailyBudget)}',
+                  : 'Over by ${format.format(provider.todaySpent - provider.dailyBudget)}',
                 style: TextStyle(color: statusColor, fontWeight: FontWeight.bold),
               ),
             ],

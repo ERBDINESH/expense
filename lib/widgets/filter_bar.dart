@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import 'package:collection/collection.dart';
 
 import '../providers/expense_provider.dart';
-import '../models/app_category.dart';
 
 class FilterBar extends StatelessWidget {
   const FilterBar({super.key});
@@ -20,82 +19,64 @@ class FilterBar extends StatelessWidget {
     return Row(
       children: [
         Expanded(
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 300),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
             decoration: BoxDecoration(
               color: Theme.of(context).cardColor,
               borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  // ignore: deprecated_member_use
-                  color: Colors.black.withOpacity(0.02),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
               border: Border.all(color: Theme.of(context).dividerColor),
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      _FilterItem(
+                Row(
+                  children: [
+                    // Type Filter
+                    Expanded(
+                      child: _FilterPopupMenu<String?>(
+                        initialValue: provider.filter.type,
+                        onSelected: (type) {
+                          provider.filter.type = type;
+                          provider.notifyFilterUpdated();
+                        },
                         icon: Icons.grid_view_rounded,
                         label: provider.filter.type ?? 'Type',
-                        onTap: () async {
-                          final type = await showMenu<String>(
-                            context: context,
-                            color: Theme.of(context).cardColor,
-                            position: const RelativeRect.fromLTRB(20, 400, 100, 0),
-                            items: [
-                              PopupMenuItem(value: null, child: Text('All Types', style: TextStyle(color: Theme.of(context).colorScheme.onSurface))),
-                              PopupMenuItem(value: 'Debit', child: Text('Expense', style: TextStyle(color: Theme.of(context).colorScheme.onSurface))),
-                              PopupMenuItem(value: 'Credit', child: Text('Income', style: TextStyle(color: Theme.of(context).colorScheme.onSurface))),
-                            ],
-                          );
-                          if (type != provider.filter.type) {
-                            provider.filter.type = type;
-                            provider.notifyFilterUpdated();
-                          }
-                        },
+                        items: const [
+                          PopupMenuItem<String?>(value: null, child: Text('All Types')),
+                          PopupMenuItem<String?>(value: 'Debit', child: Text('Expense')),
+                          PopupMenuItem<String?>(value: 'Credit', child: Text('Income')),
+                        ],
                       ),
-                      _buildSeparator(context),
-                      _FilterItem(
+                    ),
+                    _buildSeparator(context),
+                    
+                    // Category Filter
+                    Expanded(
+                      child: _FilterPopupMenu<String?>(
+                        initialValue: provider.filter.categoryId,
+                        onSelected: (catId) {
+                          provider.filter.categoryId = catId;
+                          provider.notifyFilterUpdated();
+                        },
                         icon: Icons.sell_outlined,
                         label: provider.filter.categoryId != null 
                             ? provider.allCategories.firstWhereOrNull((c) => c.id == provider.filter.categoryId)?.name ?? 'Category'
                             : 'Category',
-                        onTap: () async {
-                          final catId = await showMenu<String>(
-                            context: context,
-                            color: Theme.of(context).cardColor,
-                            position: const RelativeRect.fromLTRB(80, 400, 20, 0),
-                            items: [
-                              PopupMenuItem(value: null, child: Text('All Categories', style: TextStyle(color: Theme.of(context).colorScheme.onSurface))),
-                              const PopupMenuItem(enabled: false, child: Text("--- Defaults ---", style: TextStyle(color: Colors.white30, fontSize: 11))),
-                              ...provider.allCategories.where((c) => c.type == CategoryType.defaultType).map(
-                                (c) => PopupMenuItem(value: c.id, child: Text(c.name, style: TextStyle(color: Theme.of(context).colorScheme.onSurface))),
-                              ),
-                              const PopupMenuItem(enabled: false, child: Text("--- Customs ---", style: TextStyle(color: Colors.white30, fontSize: 11))),
-                              ...provider.allCategories.where((c) => c.type == CategoryType.custom).map(
-                                (c) => PopupMenuItem(value: c.id, child: Text(c.name, style: TextStyle(color: Theme.of(context).colorScheme.onSurface))),
-                              ),
-                            ],
-                          );
-                          if (catId != provider.filter.categoryId) {
-                            provider.filter.categoryId = catId;
-                            provider.notifyFilterUpdated();
-                          }
-                        },
+                        items: [
+                          const PopupMenuItem<String?>(value: null, child: Text('All Categories')),
+                          const PopupMenuDivider(),
+                          ...provider.allCategories.map(
+                            (c) => PopupMenuItem<String?>(value: c.id, child: Text(c.name)),
+                          ),
+                        ],
                       ),
-                      _buildSeparator(context),
-                      _FilterItem(
-                        icon: Icons.calendar_today_rounded,
-                        label: hasDateFilter ? DateFormat('dd MMM').format(provider.filter.startDate!) : 'Date',
+                    ),
+                    _buildSeparator(context),
+
+                    // Date Filter
+                    Expanded(
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(20),
                         onTap: () async {
                           final range = await showDateRangePicker(
                             context: context,
@@ -128,50 +109,32 @@ class FilterBar extends StatelessWidget {
                             provider.notifyFilterUpdated();
                           }
                         },
+                        child: _FilterItemContent(
+                          icon: Icons.calendar_today_rounded,
+                          label: hasDateFilter ? DateFormat('dd MMM').format(provider.filter.startDate!) : 'Date',
+                        ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
                 if (hasDateFilter)
-                  TweenAnimationBuilder<double>(
-                    duration: const Duration(milliseconds: 400),
-                    tween: Tween(begin: 0.0, end: 1.0),
-                    curve: Curves.easeOutBack,
-                    builder: (context, value, child) {
-                      final clampedValue = value.clamp(0.0, 1.0);
-                      return Opacity(
-                        opacity: clampedValue,
-                        child: Transform.translate(
-                          offset: Offset(0, (1 - clampedValue) * 5),
-                          child: Padding(
-                            padding: const EdgeInsets.only(top: 8),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                              decoration: BoxDecoration(
-                                // ignore: deprecated_member_use
-                                color: Theme.of(context).colorScheme.primary.withOpacity(0.05),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.date_range_rounded, size: 10, color: Theme.of(context).colorScheme.primary),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    dateRangeText,
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                      color: Theme.of(context).colorScheme.primary,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        dateRangeText,
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.primary,
                         ),
-                      );
-                    },
+                      ),
+                    ),
                   ),
               ],
             ),
@@ -179,75 +142,116 @@ class FilterBar extends StatelessWidget {
         ),
         const SizedBox(width: 10),
         // Reset Button
-        GestureDetector(
-          onTap: () {
-            provider.filter.reset();
-            provider.notifyFilterUpdated();
-          },
-          child: AnimatedRotation(
-            duration: const Duration(milliseconds: 500),
-            turns: hasDateFilter || provider.filter.categoryId != null || provider.filter.type != null ? 0 : 0.5,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                // ignore: deprecated_member_use
-                color: (hasDateFilter || provider.filter.categoryId != null || provider.filter.type != null)
-                    ? Theme.of(context).colorScheme.primary.withOpacity(0.1)
-                    : Theme.of(context).cardColor,
-                shape: BoxShape.circle,
-                border: Border.all(
-                  // ignore: deprecated_member_use
-                  color: (hasDateFilter || provider.filter.categoryId != null || provider.filter.type != null)
-                      ? Theme.of(context).colorScheme.primary.withOpacity(0.3)
-                      : Theme.of(context).dividerColor,
-                ),
-              ),
-              child: Icon(
-                Icons.refresh_rounded, 
-                color: Theme.of(context).colorScheme.primary, 
-                size: 20,
-              ),
-            ),
-          ),
-        ),
+        _ResetButton(hasFilter: hasDateFilter || provider.filter.categoryId != null || provider.filter.type != null),
       ],
     );
   }
 
   Widget _buildSeparator(BuildContext context) {
     return Container(
-      height: 16,
+      height: 20,
       width: 1,
-      margin: const EdgeInsets.symmetric(horizontal: 12),
       color: Theme.of(context).dividerColor,
     );
   }
 }
 
-class _FilterItem extends StatelessWidget {
-  const _FilterItem({required this.icon, required this.label, required this.onTap});
+class _FilterPopupMenu<T> extends StatelessWidget {
+  const _FilterPopupMenu({
+    required this.initialValue,
+    required this.onSelected,
+    required this.icon,
+    required this.label,
+    required this.items,
+  });
 
+  final T initialValue;
+  final ValueChanged<T> onSelected;
   final IconData icon;
   final String label;
-  final VoidCallback onTap;
+  final List<PopupMenuEntry<T>> items;
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
+    return PopupMenuButton<T>(
+      initialValue: initialValue,
+      onSelected: onSelected,
+      offset: const Offset(0, 40),
+      color: Theme.of(context).cardColor,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      itemBuilder: (context) => items,
+      child: _FilterItemContent(icon: icon, label: label),
+    );
+  }
+}
+
+class _FilterItemContent extends StatelessWidget {
+  const _FilterItemContent({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(icon, size: 16, color: Theme.of(context).colorScheme.primary),
           const SizedBox(width: 6),
-          Text(
-            label,
-            style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodySmall?.color, fontWeight: FontWeight.w600),
+          Flexible(
+            child: Text(
+              label,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 11, 
+                color: Theme.of(context).textTheme.bodySmall?.color, 
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
-          const SizedBox(width: 4),
-          Icon(Icons.keyboard_arrow_down_rounded, size: 14, color: Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.2)),
         ],
+      ),
+    );
+  }
+}
+
+class _ResetButton extends StatelessWidget {
+  const _ResetButton({required this.hasFilter});
+  final bool hasFilter;
+
+  @override
+  Widget build(BuildContext context) {
+    final provider = context.read<ExpenseProvider>();
+    return GestureDetector(
+      onTap: () {
+        provider.filter.reset();
+        provider.notifyFilterUpdated();
+      },
+      child: AnimatedRotation(
+        duration: const Duration(milliseconds: 500),
+        turns: hasFilter ? 0 : 0.5,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: hasFilter
+                ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1)
+                : Theme.of(context).cardColor,
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: hasFilter
+                  ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.3)
+                  : Theme.of(context).dividerColor,
+            ),
+          ),
+          child: Icon(
+            Icons.refresh_rounded, 
+            color: Theme.of(context).colorScheme.primary, 
+            size: 20,
+          ),
+        ),
       ),
     );
   }
