@@ -37,7 +37,7 @@ class ExpenseCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final accentColor = transaction.isCredit ? const Color(0xFF2E7D32) : Colors.red[700]!;
-    final format = NumberFormat.simpleCurrency(locale: 'en_IN', decimalDigits: 0);
+    final format = NumberFormat.simpleCurrency(locale: 'en_IN', decimalDigits: 2);
     
     Widget content = InkWell(
       onTap: onTap,
@@ -87,7 +87,7 @@ class ExpenseCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  '${transaction.isCredit ? '+' : '-'} ₹${format.format(transaction.amount).replaceAll(RegExp(r'[^0-9,]'), '')}',
+                  '${transaction.isCredit ? '+' : '-'} ₹${format.format(transaction.amount).replaceAll(RegExp(r'[^0-9,.]'), '')}',
                   style: TextStyle(
                     color: accentColor,
                     fontWeight: FontWeight.bold,

@@ -4,7 +4,7 @@ import '../models/app_category.dart';
 import '../models/expense_transaction.dart';
 
 class FirebaseService {
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  FirebaseFirestore get _db => FirebaseFirestore.instance;
 
   // Collection references
   CollectionReference get _usersCollection => _db.collection('users');

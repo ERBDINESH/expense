@@ -27,10 +27,10 @@ class _InsightsScreenState extends State<InsightsScreen> {
     final expenseCategoryTotals = provider.getExpenseCategoryTotals(filteredTransactions);
     final incomeCategoryTotals = provider.getIncomeCategoryTotals(filteredTransactions);
     
-    final totalExpense = provider.totalDebit;
-    final totalIncome = provider.totalCredit;
+    final totalExpense = provider.filteredTotalDebit;
+    final totalIncome = provider.filteredTotalCredit;
     
-    final format = NumberFormat.simpleCurrency(locale: 'en_IN', decimalDigits: 0);
+    final format = NumberFormat.simpleCurrency(locale: 'en_IN', decimalDigits: 2);
 
     return Scaffold(
       appBar: AppBar(

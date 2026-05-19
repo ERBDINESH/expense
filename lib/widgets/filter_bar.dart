@@ -1,7 +1,6 @@
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:collection/collection.dart';
 
 import '../providers/expense_provider.dart';
 
@@ -14,205 +13,171 @@ class FilterBar extends StatelessWidget {
     final hasDateFilter = provider.filter.startDate != null;
     final dateRangeText = hasDateFilter
         ? '${DateFormat('dd MMM').format(provider.filter.startDate!)} - ${DateFormat('dd MMM').format(provider.filter.endDate!)}'
-        : '';
+        : 'Select Date';
 
-    return Row(
+    return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Expanded(
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-            decoration: BoxDecoration(
-              color: Theme.of(context).cardColor,
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: Theme.of(context).dividerColor),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
+        Row(
+          children: [
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).cardColor,
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: Theme.of(context).dividerColor),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Type Filter
-                    Expanded(
-                      child: _FilterPopupMenu<String?>(
-                        initialValue: provider.filter.type,
-                        onSelected: (type) {
-                          provider.filter.type = type;
-                          provider.notifyFilterUpdated();
-                        },
-                        icon: Icons.grid_view_rounded,
-                        label: provider.filter.type ?? 'Type',
-                        items: const [
-                          PopupMenuItem<String?>(value: null, child: Text('All Types')),
-                          PopupMenuItem<String?>(value: 'Debit', child: Text('Expense')),
-                          PopupMenuItem<String?>(value: 'Credit', child: Text('Income')),
-                        ],
-                      ),
-                    ),
-                    _buildSeparator(context),
-                    
-                    // Category Filter
-                    Expanded(
-                      child: _FilterPopupMenu<String?>(
-                        initialValue: provider.filter.categoryId,
-                        onSelected: (catId) {
-                          provider.filter.categoryId = catId;
-                          provider.notifyFilterUpdated();
-                        },
-                        icon: Icons.sell_outlined,
-                        label: provider.filter.categoryId != null 
-                            ? provider.allCategories.firstWhereOrNull((c) => c.id == provider.filter.categoryId)?.name ?? 'Category'
-                            : 'Category',
-                        items: [
-                          const PopupMenuItem<String?>(value: null, child: Text('All Categories')),
-                          const PopupMenuDivider(),
-                          ...provider.allCategories.map(
-                            (c) => PopupMenuItem<String?>(value: c.id, child: Text(c.name)),
-                          ),
-                        ],
-                      ),
-                    ),
-                    _buildSeparator(context),
-
-                    // Date Filter
-                    Expanded(
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(20),
-                        onTap: () async {
-                          final range = await showDateRangePicker(
-                            context: context,
-                            firstDate: DateTime(2020),
-                            lastDate: DateTime(2100),
-                            builder: (context, child) {
-                              return Theme(
-                                data: Theme.of(context).copyWith(
-                                  colorScheme: Theme.of(context).colorScheme.copyWith(
-                                    primary: Theme.of(context).colorScheme.primary,
-                                    onPrimary: Colors.black,
-                                    surface: Theme.of(context).cardColor,
-                                    onSurface: Theme.of(context).colorScheme.onSurface,
-                                  ),
-                                ),
-                                child: child!,
-                              );
-                            },
-                          );
-                          if (range != null) {
-                            provider.filter.startDate = range.start;
-                            provider.filter.endDate = DateTime(
-                              range.end.year,
-                              range.end.month,
-                              range.end.day,
-                              23,
-                              59,
-                              59,
-                            );
+                    // Type Segmented Button
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: SizedBox(
+                        width: double.infinity,
+                        height: 40,
+                        child: SegmentedButton<String?>(
+                          segments: const [
+                            ButtonSegment(
+                              value: null,
+                              label: Text('All', style: TextStyle(fontSize: 11)),
+                              icon: Icon(Icons.all_inclusive, size: 14),
+                            ),
+                            ButtonSegment(
+                              value: 'Debit',
+                              label: Text('Expense', style: TextStyle(fontSize: 11)),
+                              icon: Icon(Icons.arrow_downward, size: 14),
+                            ),
+                            ButtonSegment(
+                              value: 'Credit',
+                              label: Text('Income', style: TextStyle(fontSize: 11)),
+                              icon: Icon(Icons.arrow_upward, size: 14),
+                            ),
+                          ],
+                          selected: {provider.filter.type},
+                          onSelectionChanged: (set) {
+                            provider.filter.type = set.first;
                             provider.notifyFilterUpdated();
-                          }
-                        },
-                        child: _FilterItemContent(
-                          icon: Icons.calendar_today_rounded,
-                          label: hasDateFilter ? DateFormat('dd MMM').format(provider.filter.startDate!) : 'Date',
+                          },
+                          showSelectedIcon: false,
+                          style: SegmentedButton.styleFrom(
+                            backgroundColor: Colors.transparent,
+                            selectedBackgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                            selectedForegroundColor: Theme.of(context).colorScheme.primary,
+                            side: BorderSide.none,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const Divider(height: 1, color: Colors.white10),
+                    // Category Chips
+                    SizedBox(
+                      height: 48,
+                      child: ListView(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        children: [
+                          ChoiceChip(
+                            label: const Text('All Categories', style: TextStyle(fontSize: 11)),
+                            selected: provider.filter.categoryIds.isEmpty,
+                            onSelected: (selected) {
+                              if (selected) {
+                                provider.filter.categoryIds = [];
+                                provider.notifyFilterUpdated();
+                              }
+                            },
+                          ),
+                          const SizedBox(width: 8),
+                          ...provider.allCategories.map((category) {
+                            final isSelected = provider.filter.categoryIds.contains(category.id);
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: FilterChip(
+                                label: Text(category.name, style: const TextStyle(fontSize: 11)),
+                                selected: isSelected,
+                                onSelected: (selected) {
+                                  if (selected) {
+                                    provider.filter.categoryIds.add(category.id);
+                                  } else {
+                                    provider.filter.categoryIds.remove(category.id);
+                                  }
+                                  provider.notifyFilterUpdated();
+                                },
+                                showCheckmark: false,
+                                padding: const EdgeInsets.symmetric(horizontal: 4),
+                              ),
+                            );
+                          }),
+                        ],
+                      ),
+                    ),
+                    const Divider(height: 1, color: Colors.white10),
+                    // Date Filter Button
+                    InkWell(
+                      borderRadius: BorderRadius.circular(20),
+                      onTap: () async {
+                        final range = await showDateRangePicker(
+                          context: context,
+                          firstDate: DateTime(2020),
+                          lastDate: DateTime(2100),
+                          builder: (context, child) {
+                            return Theme(
+                              data: Theme.of(context).copyWith(
+                                colorScheme: Theme.of(context).colorScheme.copyWith(
+                                  primary: Theme.of(context).colorScheme.primary,
+                                  onPrimary: Colors.black,
+                                  surface: Theme.of(context).cardColor,
+                                  onSurface: Theme.of(context).colorScheme.onSurface,
+                                ),
+                              ),
+                              child: child!,
+                            );
+                          },
+                        );
+                        if (range != null) {
+                          provider.filter.startDate = range.start;
+                          provider.filter.endDate = DateTime(
+                            range.end.year,
+                            range.end.month,
+                            range.end.day,
+                            23,
+                            59,
+                            59,
+                          );
+                          provider.notifyFilterUpdated();
+                        }
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.calendar_today_rounded, size: 14, color: Theme.of(context).colorScheme.primary),
+                            const SizedBox(width: 8),
+                            Text(
+                              dateRangeText,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: hasDateFilter ? Theme.of(context).colorScheme.primary : Theme.of(context).textTheme.bodySmall?.color,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
                   ],
                 ),
-                if (hasDateFilter)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 6),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        dateRangeText,
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(width: 10),
-        // Reset Button
-        _ResetButton(hasFilter: hasDateFilter || provider.filter.categoryId != null || provider.filter.type != null),
-      ],
-    );
-  }
-
-  Widget _buildSeparator(BuildContext context) {
-    return Container(
-      height: 20,
-      width: 1,
-      color: Theme.of(context).dividerColor,
-    );
-  }
-}
-
-class _FilterPopupMenu<T> extends StatelessWidget {
-  const _FilterPopupMenu({
-    required this.initialValue,
-    required this.onSelected,
-    required this.icon,
-    required this.label,
-    required this.items,
-  });
-
-  final T initialValue;
-  final ValueChanged<T> onSelected;
-  final IconData icon;
-  final String label;
-  final List<PopupMenuEntry<T>> items;
-
-  @override
-  Widget build(BuildContext context) {
-    return PopupMenuButton<T>(
-      initialValue: initialValue,
-      onSelected: onSelected,
-      offset: const Offset(0, 40),
-      color: Theme.of(context).cardColor,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      itemBuilder: (context) => items,
-      child: _FilterItemContent(icon: icon, label: label),
-    );
-  }
-}
-
-class _FilterItemContent extends StatelessWidget {
-  const _FilterItemContent({required this.icon, required this.label});
-
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: 16, color: Theme.of(context).colorScheme.primary),
-          const SizedBox(width: 6),
-          Flexible(
-            child: Text(
-              label,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 11, 
-                color: Theme.of(context).textTheme.bodySmall?.color, 
-                fontWeight: FontWeight.w600,
               ),
             ),
-          ),
-        ],
-      ),
+            const SizedBox(width: 10),
+            // Reset Button
+            _ResetButton(hasFilter: hasDateFilter || provider.filter.categoryIds.isNotEmpty || provider.filter.type != null),
+          ],
+        ),
+      ],
     );
   }
 }

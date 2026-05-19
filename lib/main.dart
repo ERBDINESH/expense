@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -9,8 +10,11 @@ import 'screens/splash_screen.dart';
 Future<void> main() async {
   try {
     WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
-    // Keep the native splash screen until our custom animation is ready to take over
-    FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+    
+    if (!kIsWeb) {
+      // Keep the native splash screen until our custom animation is ready to take over
+      FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+    }
     
     await Firebase.initializeApp();
     

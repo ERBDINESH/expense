@@ -18,7 +18,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final provider = context.watch<ExpenseProvider>();
     final user = AuthService().currentUser;
     final theme = Theme.of(context);
-    final format = NumberFormat.simpleCurrency(locale: 'en_IN', decimalDigits: 0);
+    final format = NumberFormat.simpleCurrency(locale: 'en_IN', decimalDigits: 2);
 
     final todaySpent = provider.todaySpent;
     final dailyBudget = provider.dailyBudget;
@@ -87,7 +87,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       const Icon(Icons.lock_clock_outlined, size: 14, color: Colors.white24),
                       const SizedBox(width: 8),
                       Text(
-                        '₹${provider.upcomingFixedCosts.toStringAsFixed(0)} reserved for upcoming payments',
+                        '₹${provider.upcomingFixedCosts.toStringAsFixed(2)} reserved for upcoming payments',
                         style: const TextStyle(color: Colors.white24, fontSize: 12, fontStyle: FontStyle.italic),
                       ),
                     ],
@@ -222,7 +222,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           const SizedBox(height: 12),
           Text(
             provider.remainingToday > 0 
-              ? 'Safe to spend: ₹${provider.safeToSpendPerHour.toStringAsFixed(0)} per hour'
+              ? 'Safe to spend: ₹${provider.safeToSpendPerHour.toStringAsFixed(2)} per hour'
               : 'You\'ve exceeded today\'s budget',
             style: const TextStyle(color: Colors.white24, fontSize: 12),
           ),

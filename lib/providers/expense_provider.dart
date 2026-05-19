@@ -12,7 +12,7 @@ import '../services/firebase_service.dart';
 class ExpenseFilter {
   DateTime? startDate;
   DateTime? endDate;
-  String? categoryId;
+  List<String> categoryIds = [];
   String? type;
 
   ExpenseFilter() {
@@ -27,7 +27,7 @@ class ExpenseFilter {
 
   void reset() {
     _setInitialMonth();
-    categoryId = null;
+    categoryIds = [];
     type = null;
   }
 }
@@ -66,7 +66,7 @@ class ExpenseProvider extends ChangeNotifier {
       final inRange = (filter.startDate == null ||
               !tx.date.isBefore(filter.startDate!)) &&
           (filter.endDate == null || !tx.date.isAfter(filter.endDate!));
-      final inCategory = filter.categoryId == null || tx.category == filter.categoryId;
+      final inCategory = filter.categoryIds.isEmpty || filter.categoryIds.contains(tx.category);
       final inType = filter.type == null || tx.type == filter.type;
       return inRange && inCategory && inType;
     }).toList();
@@ -80,11 +80,22 @@ class ExpenseProvider extends ChangeNotifier {
     return {for (final key in sortedKeys) key: groups[key]!};
   }
 
+  Map<String, double> get categoryTotals => getExpenseCategoryTotals(filteredTransactions);
+
   double get totalDebit => _transactions
       .where((e) => !e.isCredit)
       .fold(0.0, (sum, e) => sum + e.amount);
   double get totalCredit =>
       _transactions.where((e) => e.isCredit).fold(0.0, (sum, e) => sum + e.amount);
+  
+  double get filteredTotalDebit => filteredTransactions
+      .where((e) => !e.isCredit)
+      .fold(0.0, (sum, e) => sum + e.amount);
+  
+  double get filteredTotalCredit => filteredTransactions
+      .where((e) => e.isCredit)
+      .fold(0.0, (sum, e) => sum + e.amount);
+
   double get netBalance => totalCredit - totalDebit;
 
   double get totalBalance => netBalance; // Standardized name for clarity
@@ -187,13 +198,17 @@ class ExpenseProvider extends ChangeNotifier {
     isLoading = true;
     notifyListeners();
     
-    FirebaseAuth.instance.idTokenChanges().listen((user) {
-      print("Provider: Auth changed. User: ${user?.uid}");
-      _setupListeners();
-    });
+    try {
+      FirebaseAuth.instance.idTokenChanges().listen((user) {
+        print("Provider: Auth changed. User: ${user?.uid}");
+        _setupListeners();
+      });
 
-    if (FirebaseAuth.instance.currentUser != null) {
-      _setupListeners();
+      if (FirebaseAuth.instance.currentUser != null) {
+        _setupListeners();
+      }
+    } catch (e) {
+      print("FirebaseAuth not initialized or error: $e");
     }
 
     isLoading = false;
@@ -206,7 +221,13 @@ class ExpenseProvider extends ChangeNotifier {
     _customCategoriesSubscription?.cancel();
     _fixedCostsSubscription?.cancel();
 
-    final user = FirebaseAuth.instance.currentUser;
+    User? user;
+    try {
+      user = FirebaseAuth.instance.currentUser;
+    } catch (e) {
+      print("Firebase Auth error: $e");
+    }
+
     if (user != null) {
       isLoading = true;
       notifyListeners();

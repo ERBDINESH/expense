@@ -13,7 +13,7 @@ class ChartsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final provider = context.watch<ExpenseProvider>();
     final categoryTotals = provider.categoryTotals;
-    final totalExpense = provider.totalDebit;
+    final totalExpense = provider.filteredTotalDebit;
     final filteredTransactions = provider.filteredTransactions;
 
     return Scaffold(
@@ -78,7 +78,7 @@ class ChartsScreen extends StatelessWidget {
                 color: Theme.of(context).cardColor,
                 shape: BoxShape.circle,
               ),
-              child: Icon(Icons.pie_chart_outline_rounded, size: 64, color: Theme.of(context).colorScheme.primary.withOpacity(0.2)),
+              child: Icon(Icons.pie_chart_outline_rounded, size: 64, color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2)),
             ),
             const SizedBox(height: 24),
             const Text('No Data to Analyze', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
@@ -220,7 +220,7 @@ class ChartsScreen extends StatelessWidget {
               dotData: const FlDotData(show: false),
               belowBarData: BarAreaData(
                 show: true,
-                color: Theme.of(context).colorScheme.primary.withOpacity(0.05),
+                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
               ),
             ),
           ],
@@ -281,7 +281,7 @@ class ChartsScreen extends StatelessWidget {
               barRods: [
                 BarChartRodData(
                   toY: dayMap[day] ?? 0,
-                  color: Theme.of(context).colorScheme.primary.withOpacity(dayMap[day] != null ? 1.0 : 0.1),
+                  color: Theme.of(context).colorScheme.primary.withValues(alpha: dayMap[day] != null ? 1.0 : 0.1),
                   width: 12,
                   borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
                 ),

@@ -14,6 +14,7 @@ class TransactionsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final provider = context.watch<ExpenseProvider>();
     final grouped = provider.groupedByDate;
+    final format = NumberFormat.simpleCurrency(locale: 'en_IN', decimalDigits: 0);
 
     return Scaffold(
       appBar: AppBar(
@@ -21,9 +22,32 @@ class TransactionsScreen extends StatelessWidget {
       ),
       body: Column(
         children: [
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-            child: FilterBar(),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            child: Column(
+              children: [
+                const FilterBar(),
+                const SizedBox(height: 16),
+                // Summary Row
+                Row(
+                  children: [
+                    _buildSummaryItem(
+                      context, 
+                      'Expense', 
+                      format.format(provider.filteredTotalDebit), 
+                      Colors.redAccent,
+                    ),
+                    const SizedBox(width: 12),
+                    _buildSummaryItem(
+                      context, 
+                      'Income', 
+                      format.format(provider.filteredTotalCredit), 
+                      Theme.of(context).colorScheme.primary,
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
           Expanded(
             child: provider.isLoading
@@ -31,7 +55,7 @@ class TransactionsScreen extends StatelessWidget {
                 : grouped.isEmpty
                     ? _buildEmptyState(context)
                     : ListView.builder(
-                        padding: const EdgeInsets.all(20),
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
                         physics: const BouncingScrollPhysics(),
                         itemCount: grouped.length,
                         itemBuilder: (context, index) {
@@ -46,10 +70,38 @@ class TransactionsScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildSummaryItem(BuildContext context, String label, String amount, Color color) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: color.withValues(alpha: 0.1)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label.toUpperCase(),
+              style: TextStyle(color: color.withValues(alpha: 0.5), fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              amount,
+              style: TextStyle(color: color, fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildDateGroup(BuildContext context, DateTime date, List<ExpenseTransaction> transactions) {
     final dailyTotal = transactions
         .where((tx) => !tx.isCredit)
         .fold(0.0, (sum, tx) => sum + tx.amount);
+    final format = NumberFormat.simpleCurrency(locale: 'en_IN', decimalDigits: 0);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -70,7 +122,7 @@ class TransactionsScreen extends StatelessWidget {
               ),
               if (dailyTotal > 0)
                 Text(
-                  '₹${dailyTotal.toStringAsFixed(0)}',
+                  format.format(dailyTotal),
                   style: TextStyle(
                     color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
                     fontSize: 12,

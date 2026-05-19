@@ -54,7 +54,11 @@ class _SplashScreenState extends State<SplashScreen>
   void _removeNativeSplashAndStart() async {
     // Wait for the first frame to ensure our Flutter UI is underneath
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      FlutterNativeSplash.remove();
+      try {
+        FlutterNativeSplash.remove();
+      } catch (e) {
+        debugPrint("FlutterNativeSplash.remove error: $e");
+      }
       startFlow();
     });
   }
@@ -72,8 +76,13 @@ class _SplashScreenState extends State<SplashScreen>
     // 4. Navigate
     if (!mounted) return;
     
-    final user = FirebaseAuth.instance.currentUser;
-    final bool isLoggedIn = user != null;
+    bool isLoggedIn = false;
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      isLoggedIn = user != null;
+    } catch (e) {
+      debugPrint("FirebaseAuth not initialized or error: $e");
+    }
 
     Navigator.pushReplacement(
       context,
