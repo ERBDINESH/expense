@@ -13,6 +13,8 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
+  bool _isBalanceVisible = true;
+
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<ExpenseProvider>();
@@ -156,6 +158,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       displayAmount = '$displayAmount 😞';
     }
 
+    final visibleAmount = _isBalanceVisible ? displayAmount : '••••••';
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(28),
@@ -166,10 +170,34 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
       child: Column(
         children: [
-          Text(label, style: TextStyle(color: isNegative ? Colors.redAccent : Colors.white24, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Text(label, style: TextStyle(color: isNegative ? Colors.redAccent : Colors.white24, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+              ),
+              InkWell(
+                borderRadius: BorderRadius.circular(24),
+                onTap: () => setState(() => _isBalanceVisible = !_isBalanceVisible),
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primary.withOpacity(0.08),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    _isBalanceVisible ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                    size: 18,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 12),
           Text(
-            displayAmount,
+            visibleAmount,
             style: TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: textColor),
           ),
           if (isNegative)

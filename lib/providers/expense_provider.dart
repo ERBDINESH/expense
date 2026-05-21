@@ -13,7 +13,7 @@ class ExpenseFilter {
   DateTime? startDate;
   DateTime? endDate;
   List<String> categoryIds = [];
-  String? type;
+  List<String> types = [];
 
   ExpenseFilter() {
     _setInitialMonth();
@@ -28,7 +28,7 @@ class ExpenseFilter {
   void reset() {
     _setInitialMonth();
     categoryIds = [];
-    type = null;
+    types = [];
   }
 }
 
@@ -67,7 +67,7 @@ class ExpenseProvider extends ChangeNotifier {
               !tx.date.isBefore(filter.startDate!)) &&
           (filter.endDate == null || !tx.date.isAfter(filter.endDate!));
       final inCategory = filter.categoryIds.isEmpty || filter.categoryIds.contains(tx.category);
-      final inType = filter.type == null || tx.type == filter.type;
+      final inType = filter.types.isEmpty || filter.types.contains(tx.type);
       return inRange && inCategory && inType;
     }).toList();
   }

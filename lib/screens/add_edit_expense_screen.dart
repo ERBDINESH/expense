@@ -172,7 +172,7 @@ class _AddEditExpenseScreenState extends State<AddEditExpenseScreen> {
               ),
               child: DropdownButtonFormField<String>(
                 dropdownColor: Theme.of(context).cardColor,
-                value: safeCategoryId,
+                initialValue: safeCategoryId,
                 items: [
                   const DropdownMenuItem(
                     enabled: false,

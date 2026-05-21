@@ -33,7 +33,7 @@ class ProfileScreen extends StatelessWidget {
                       child: DropdownButtonFormField<int>(
                         isExpanded: true,
                         dropdownColor: Theme.of(context).cardColor,
-                        value: selectedMonth,
+                        initialValue: selectedMonth,
                         decoration: const InputDecoration(
                           labelText: 'Month',
                           contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -53,7 +53,7 @@ class ProfileScreen extends StatelessWidget {
                       child: DropdownButtonFormField<int>(
                         isExpanded: true,
                         dropdownColor: Theme.of(context).cardColor,
-                        value: selectedYear,
+                        initialValue: selectedYear,
                         decoration: const InputDecoration(
                           labelText: 'Year',
                           contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),

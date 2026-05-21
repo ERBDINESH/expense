@@ -86,7 +86,7 @@ class _QuickAddBottomSheetState extends State<QuickAddBottomSheet> {
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
                 textAlign: TextAlign.center,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   hintText: '₹ 0',
                   contentPadding: EdgeInsets.zero,
                   border: InputBorder.none,
@@ -105,7 +105,7 @@ class _QuickAddBottomSheetState extends State<QuickAddBottomSheet> {
 
               // Category Selector
               DropdownButtonFormField<String>(
-                value: _categoryId,
+                initialValue: _categoryId,
                 hint: const Text('Select Category'),
                 items: allCategories.map((cat) => DropdownMenuItem(
                   value: cat.id,

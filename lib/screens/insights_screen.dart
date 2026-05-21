@@ -40,7 +40,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
         physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.all(20),
         children: [
-          const FilterBar(),
+          const FilterBar(compact: true),
           const SizedBox(height: 32),
           
           if (filteredTransactions.isEmpty)
@@ -128,14 +128,14 @@ class _InsightsScreenState extends State<InsightsScreen> {
   }
 
   Widget _buildEmptyState(BuildContext context) {
-    return Center(
+    return const Center(
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 100),
+        padding: EdgeInsets.symmetric(vertical: 100),
         child: Column(
           children: [
             Icon(Icons.insights_rounded, size: 64, color: Colors.white10),
-            const SizedBox(height: 16),
-            const Text('Not enough data for insights', style: TextStyle(color: Colors.white54)),
+            SizedBox(height: 16),
+            Text('Not enough data for insights', style: TextStyle(color: Colors.white54)),
           ],
         ),
       ),

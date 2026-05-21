@@ -68,14 +68,14 @@ class FixedCostsScreen extends StatelessWidget {
   }
 
   Widget _buildEmptyState(BuildContext context) {
-    return Center(
+    return const Center(
       child: Padding(
-        padding: const EdgeInsets.only(top: 100),
+        padding: EdgeInsets.only(top: 100),
         child: Column(
           children: [
             Icon(Icons.receipt_outlined, size: 64, color: Colors.white10),
-            const SizedBox(height: 16),
-            const Text('No fixed costs added yet.', style: TextStyle(color: Colors.white38)),
+            SizedBox(height: 16),
+            Text('No fixed costs added yet.', style: TextStyle(color: Colors.white38)),
           ],
         ),
       ),
